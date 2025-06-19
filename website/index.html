@@ -1,0 +1,1210 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AquaSentry Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/luxon@3.0.1/build/global/luxon.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon@1.2.0/dist/chartjs-adapter-luxon.min.js"></script>
+    <style>
+        :root {
+            --primary: #006d77;
+            --secondary: #83c5be;
+            --accent: #edf6f9;
+            --text-dark: #023047;
+            --text-light: #ffffff;
+            --danger: #e63946;
+            --success: #2a9d8f;
+            --purple: #6a4c93;
+            --orange: #f4a261;
+        }
+        
+        .theme-light {
+            --bg-primary: var(--accent);
+            --bg-secondary: #ffffff;
+            --text-primary: var(--text-dark);
+            --card-bg: white;
+            --card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+        
+        .theme-dark {
+            --bg-primary: #0a1929;
+            --bg-secondary: #132f4c;
+            --text-primary: var(--text-light);
+            --card-bg: #132f4c;
+            --card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
+        }
+        
+        body {
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            transition: background-color 0.3s, color 0.3s;
+        }
+        
+        .card {
+            background-color: var(--card-bg);
+            box-shadow: var(--card-shadow);
+            transition: background-color 0.3s, box-shadow 0.3s;
+        }
+        
+        .relay-button {
+            transition: all 0.3s ease;
+        }
+        
+        .pill-button {
+            transition: all 0.2s ease;
+        }
+        
+        .pill-button.active {
+            background-color: var(--primary);
+            color: white;
+        }
+        
+        .pill-button:hover:not(.active) {
+            background-color: var(--secondary);
+            color: var(--text-dark);
+        }
+        
+        .filter-toggle.active {
+            background-color: var(--primary);
+            color: white;
+        }
+        
+        /* Custom scrollbar */
+        .custom-scrollbar::-webkit-scrollbar {
+            height: 4px;
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: rgba(237, 246, 249, 0.3);
+            border-radius: 10px;
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: var(--primary);
+            border-radius: 10px;
+        }
+        
+        /* Tooltip */
+        .tooltip {
+            position: relative;
+            display: inline-block;
+        }
+        
+        .tooltip .tooltip-text {
+            visibility: hidden;
+            background-color: var(--text-dark);
+            color: var(--text-light);
+            text-align: center;
+            border-radius: 6px;
+            padding: 8px;
+            position: absolute;
+            z-index: 1;
+            bottom: 125%;
+            left: 50%;
+            transform: translateX(-50%);
+            opacity: 0;
+            transition: opacity 0.3s;
+            width: 200px;
+        }
+        
+        .tooltip:hover .tooltip-text {
+            visibility: visible;
+            opacity: 1;
+        }
+        
+        /* Pagination */
+        .pagination-button {
+            transition: all 0.2s ease;
+        }
+        
+        .pagination-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        /* Animation for data updates */
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        
+        .pulse-animation {
+            animation: pulse 0.5s ease-in-out;
+        }
+    </style>
+<style>*, ::before, ::after{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x: ;--tw-pan-y: ;--tw-pinch-zoom: ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position: ;--tw-gradient-via-position: ;--tw-gradient-to-position: ;--tw-ordinal: ;--tw-slashed-zero: ;--tw-numeric-figure: ;--tw-numeric-spacing: ;--tw-numeric-fraction: ;--tw-ring-inset: ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur: ;--tw-brightness: ;--tw-contrast: ;--tw-grayscale: ;--tw-hue-rotate: ;--tw-invert: ;--tw-saturate: ;--tw-sepia: ;--tw-drop-shadow: ;--tw-backdrop-blur: ;--tw-backdrop-brightness: ;--tw-backdrop-contrast: ;--tw-backdrop-grayscale: ;--tw-backdrop-hue-rotate: ;--tw-backdrop-invert: ;--tw-backdrop-opacity: ;--tw-backdrop-saturate: ;--tw-backdrop-sepia: ;--tw-contain-size: ;--tw-contain-layout: ;--tw-contain-paint: ;--tw-contain-style: }::backdrop{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x: ;--tw-pan-y: ;--tw-pinch-zoom: ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position: ;--tw-gradient-via-position: ;--tw-gradient-to-position: ;--tw-ordinal: ;--tw-slashed-zero: ;--tw-numeric-figure: ;--tw-numeric-spacing: ;--tw-numeric-fraction: ;--tw-ring-inset: ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur: ;--tw-brightness: ;--tw-contrast: ;--tw-grayscale: ;--tw-hue-rotate: ;--tw-invert: ;--tw-saturate: ;--tw-sepia: ;--tw-drop-shadow: ;--tw-backdrop-blur: ;--tw-backdrop-brightness: ;--tw-backdrop-contrast: ;--tw-backdrop-grayscale: ;--tw-backdrop-hue-rotate: ;--tw-backdrop-invert: ;--tw-backdrop-opacity: ;--tw-backdrop-saturate: ;--tw-backdrop-sepia: ;--tw-contain-size: ;--tw-contain-layout: ;--tw-contain-paint: ;--tw-contain-style: }/* ! tailwindcss v3.4.16 | MIT License | https://tailwindcss.com */*,::after,::before{box-sizing:border-box;border-width:0;border-style:solid;border-color:#e5e7eb}::after,::before{--tw-content:''}:host,html{line-height:1.5;-webkit-text-size-adjust:100%;-moz-tab-size:4;tab-size:4;font-family:ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";font-feature-settings:normal;font-variation-settings:normal;-webkit-tap-highlight-color:transparent}body{margin:0;line-height:inherit}hr{height:0;color:inherit;border-top-width:1px}abbr:where([title]){-webkit-text-decoration:underline dotted;text-decoration:underline dotted}h1,h2,h3,h4,h5,h6{font-size:inherit;font-weight:inherit}a{color:inherit;text-decoration:inherit}b,strong{font-weight:bolder}code,kbd,pre,samp{font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;font-feature-settings:normal;font-variation-settings:normal;font-size:1em}small{font-size:80%}sub,sup{font-size:75%;line-height:0;position:relative;vertical-align:baseline}sub{bottom:-.25em}sup{top:-.5em}table{text-indent:0;border-color:inherit;border-collapse:collapse}button,input,optgroup,select,textarea{font-family:inherit;font-feature-settings:inherit;font-variation-settings:inherit;font-size:100%;font-weight:inherit;line-height:inherit;letter-spacing:inherit;color:inherit;margin:0;padding:0}button,select{text-transform:none}button,input:where([type=button]),input:where([type=reset]),input:where([type=submit]){-webkit-appearance:button;background-color:transparent;background-image:none}:-moz-focusring{outline:auto}:-moz-ui-invalid{box-shadow:none}progress{vertical-align:baseline}::-webkit-inner-spin-button,::-webkit-outer-spin-button{height:auto}[type=search]{-webkit-appearance:textfield;outline-offset:-2px}::-webkit-search-decoration{-webkit-appearance:none}::-webkit-file-upload-button{-webkit-appearance:button;font:inherit}summary{display:list-item}blockquote,dd,dl,figure,h1,h2,h3,h4,h5,h6,hr,p,pre{margin:0}fieldset{margin:0;padding:0}legend{padding:0}menu,ol,ul{list-style:none;margin:0;padding:0}dialog{padding:0}textarea{resize:vertical}input::placeholder,textarea::placeholder{opacity:1;color:#9ca3af}[role=button],button{cursor:pointer}:disabled{cursor:default}audio,canvas,embed,iframe,img,object,svg,video{display:block;vertical-align:middle}img,video{max-width:100%;height:auto}[hidden]:where(:not([hidden=until-found])){display:none}.container{width:100%}@media (min-width: 640px){.container{max-width:640px}}@media (min-width: 768px){.container{max-width:768px}}@media (min-width: 1024px){.container{max-width:1024px}}@media (min-width: 1280px){.container{max-width:1280px}}@media (min-width: 1536px){.container{max-width:1536px}}.relative{position:relative}.mx-auto{margin-left:auto;margin-right:auto}.mb-4{margin-bottom:1rem}.mb-6{margin-bottom:1.5rem}.mb-8{margin-bottom:2rem}.mr-2{margin-right:0.5rem}.mt-2{margin-top:0.5rem}.mt-4{margin-top:1rem}.inline-block{display:inline-block}.flex{display:flex}.h-32{height:8rem}.h-6{height:1.5rem}.h-80{height:20rem}.min-h-screen{min-height:100vh}.w-32{width:8rem}.w-6{width:1.5rem}.w-64{width:16rem}.w-full{width:100%}.min-w-max{min-width:max-content}.max-w-md{max-width:28rem}.flex-col{flex-direction:column}.flex-wrap{flex-wrap:wrap}.items-start{align-items:flex-start}.items-center{align-items:center}.justify-center{justify-content:center}.justify-between{justify-content:space-between}.gap-2{gap:0.5rem}.space-x-2 > :not([hidden]) ~ :not([hidden]){--tw-space-x-reverse:0;margin-right:calc(0.5rem * var(--tw-space-x-reverse));margin-left:calc(0.5rem * calc(1 - var(--tw-space-x-reverse)))}.space-x-4 > :not([hidden]) ~ :not([hidden]){--tw-space-x-reverse:0;margin-right:calc(1rem * var(--tw-space-x-reverse));margin-left:calc(1rem * calc(1 - var(--tw-space-x-reverse)))}.space-y-4 > :not([hidden]) ~ :not([hidden]){--tw-space-y-reverse:0;margin-top:calc(1rem * calc(1 - var(--tw-space-y-reverse)));margin-bottom:calc(1rem * var(--tw-space-y-reverse))}.overflow-x-auto{overflow-x:auto}.rounded{border-radius:0.25rem}.rounded-full{border-radius:9999px}.rounded-xl{border-radius:0.75rem}.border-b{border-bottom-width:1px}.border-gray-200{--tw-border-opacity:1;border-color:rgb(229 231 235 / var(--tw-border-opacity, 1))}.border-gray-100{--tw-border-opacity:1;border-color:rgb(243 244 246 / var(--tw-border-opacity, 1))}.bg-gray-100{--tw-bg-opacity:1;background-color:rgb(243 244 246 / var(--tw-bg-opacity, 1))}.bg-blue-100{--tw-bg-opacity:1;background-color:rgb(219 234 254 / var(--tw-bg-opacity, 1))}.bg-orange-100{--tw-bg-opacity:1;background-color:rgb(255 237 213 / var(--tw-bg-opacity, 1))}.bg-purple-100{--tw-bg-opacity:1;background-color:rgb(243 232 255 / var(--tw-bg-opacity, 1))}.bg-red-100{--tw-bg-opacity:1;background-color:rgb(254 226 226 / var(--tw-bg-opacity, 1))}.p-1{padding:0.25rem}.p-3{padding:0.75rem}.p-6{padding:1.5rem}.px-2{padding-left:0.5rem;padding-right:0.5rem}.px-3{padding-left:0.75rem;padding-right:0.75rem}.px-4{padding-left:1rem;padding-right:1rem}.py-1{padding-top:0.25rem;padding-bottom:0.25rem}.py-3{padding-top:0.75rem;padding-bottom:0.75rem}.py-4{padding-top:1rem;padding-bottom:1rem}.py-6{padding-top:1.5rem;padding-bottom:1.5rem}.pb-10{padding-bottom:2.5rem}.text-left{text-align:left}.text-center{text-align:center}.text-2xl{font-size:1.5rem;line-height:2rem}.text-3xl{font-size:1.875rem;line-height:2.25rem}.text-4xl{font-size:2.25rem;line-height:2.5rem}.text-lg{font-size:1.125rem;line-height:1.75rem}.text-sm{font-size:0.875rem;line-height:1.25rem}.text-xs{font-size:0.75rem;line-height:1rem}.font-bold{font-weight:700}.font-semibold{font-weight:600}.text-gray-500{--tw-text-opacity:1;color:rgb(107 114 128 / var(--tw-text-opacity, 1))}.text-white{--tw-text-opacity:1;color:rgb(255 255 255 / var(--tw-text-opacity, 1))}.text-blue-800{--tw-text-opacity:1;color:rgb(30 64 175 / var(--tw-text-opacity, 1))}.text-orange-800{--tw-text-opacity:1;color:rgb(154 52 18 / var(--tw-text-opacity, 1))}.text-purple-800{--tw-text-opacity:1;color:rgb(107 33 168 / var(--tw-text-opacity, 1))}.text-red-800{--tw-text-opacity:1;color:rgb(153 27 27 / var(--tw-text-opacity, 1))}.transition-all{transition-property:all;transition-timing-function:cubic-bezier(0.4, 0, 0.2, 1);transition-duration:150ms}.hover\:bg-gray-50:hover{--tw-bg-opacity:1;background-color:rgb(249 250 251 / var(--tw-bg-opacity, 1))}.hover\:bg-opacity-90:hover{--tw-bg-opacity:0.9}.disabled\:opacity-50:disabled{opacity:0.5}@media (min-width: 768px){.md\:mb-0{margin-bottom:0px}.md\:flex-row{flex-direction:row}.md\:items-center{align-items:center}.md\:space-y-0 > :not([hidden]) ~ :not([hidden]){--tw-space-y-reverse:0;margin-top:calc(0px * calc(1 - var(--tw-space-y-reverse)));margin-bottom:calc(0px * var(--tw-space-y-reverse))}.md\:text-4xl{font-size:2.25rem;line-height:2.5rem}}@media (prefers-color-scheme: dark){.dark\:border-gray-700{--tw-border-opacity:1;border-color:rgb(55 65 81 / var(--tw-border-opacity, 1))}.dark\:border-gray-800{--tw-border-opacity:1;border-color:rgb(31 41 55 / var(--tw-border-opacity, 1))}.dark\:bg-gray-700{--tw-bg-opacity:1;background-color:rgb(55 65 81 / var(--tw-bg-opacity, 1))}.dark\:bg-blue-900{--tw-bg-opacity:1;background-color:rgb(30 58 138 / var(--tw-bg-opacity, 1))}.dark\:bg-orange-900{--tw-bg-opacity:1;background-color:rgb(124 45 18 / var(--tw-bg-opacity, 1))}.dark\:bg-purple-900{--tw-bg-opacity:1;background-color:rgb(88 28 135 / var(--tw-bg-opacity, 1))}.dark\:bg-red-900{--tw-bg-opacity:1;background-color:rgb(127 29 29 / var(--tw-bg-opacity, 1))}.dark\:text-gray-400{--tw-text-opacity:1;color:rgb(156 163 175 / var(--tw-text-opacity, 1))}.dark\:text-blue-200{--tw-text-opacity:1;color:rgb(191 219 254 / var(--tw-text-opacity, 1))}.dark\:text-orange-200{--tw-text-opacity:1;color:rgb(254 215 170 / var(--tw-text-opacity, 1))}.dark\:text-purple-200{--tw-text-opacity:1;color:rgb(233 213 255 / var(--tw-text-opacity, 1))}.dark\:text-red-200{--tw-text-opacity:1;color:rgb(254 202 202 / var(--tw-text-opacity, 1))}.dark\:hover\:bg-gray-800:hover{--tw-bg-opacity:1;background-color:rgb(31 41 55 / var(--tw-bg-opacity, 1))}}</style></head>
+<body class="theme-light min-h-screen pb-10">
+    <div class="container mx-auto px-4 py-6">
+        <header class="mb-8">
+            <div class="flex flex-col md:flex-row justify-between items-center">
+                <h1 class="text-3xl md:text-4xl font-bold text-primary mb-4 md:mb-0" style="color: var(--primary);">
+                    <span class="inline-block mr-2">🌊</span> AquaSentry Dashboard
+                </h1>
+                <div class="text-sm text-gray-500 dark:text-gray-400">
+                    <span id="current-time">18 Jun 2025, 07:07:35 am (MYT)</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Top Cards Row -->
+        <div class="overflow-x-auto custom-scrollbar mb-8">
+            <div class="flex space-x-4 min-w-max">
+                <!-- Card 1: Relay State -->
+                <div class="card rounded-xl p-6 w-64 flex flex-col items-center">
+                    <h3 class="text-lg font-semibold mb-4">Relay State</h3>
+                    <div class="relative flex items-center justify-center">
+                        <div id="relay-button" class="relay-button w-32 h-32 rounded-full flex items-center justify-center border-6" style="border-width: 6px; border-color: var(--success);">
+                            <span id="relay-state" class="text-2xl font-bold">OFF</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card 2: Ultrasonic & Water Readings Count -->
+                <div class="card rounded-xl p-6 w-64 flex flex-col items-center">
+                    <h3 class="text-lg font-semibold mb-4">Water Readings</h3>
+                    <div class="flex flex-col items-center">
+                        <div class="text-4xl font-bold" id="water-readings-count"></div>
+                        <div class="text-sm text-gray-500 mt-2">Total Records</div>
+                    </div>
+                </div>
+
+                <!-- Card 3: Temperature & Humidity Readings Count -->
+                <div class="card rounded-xl p-6 w-64 flex flex-col items-center">
+                    <h3 class="text-lg font-semibold mb-4">Temp &amp; Humidity</h3>
+                    <div class="flex flex-col items-center">
+                        <div class="text-4xl font-bold" id="temp-readings-count"></div>
+                        <div class="text-sm text-gray-500 mt-2">Total Records</div>
+                    </div>
+                </div>
+
+                <!-- Card 4: Theme Toggle -->
+                <div class="card rounded-xl p-6 w-64 flex flex-col items-center">
+                    <h3 class="text-lg font-semibold mb-4">Theme</h3>
+                    <button id="theme-toggle" class="bg-primary hover:bg-opacity-90 text-white rounded-full p-3 transition-all">
+                        <svg id="theme-icon" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Water Sensor Graph -->
+        <div class="card rounded-xl p-6 mb-8">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
+                <h2 class="text-2xl font-bold mb-4 md:mb-0">Water Sensor Levels</h2>
+                <div class="flex flex-wrap gap-2 bg-gray-100 dark:bg-gray-700 rounded-full p-1">
+                    <button class="water-range-btn pill-button px-3 py-1 rounded-full text-sm active" data-range="minutely">Minutely</button>
+                    <button class="water-range-btn pill-button px-3 py-1 rounded-full text-sm" data-range="hourly">Hourly</button>
+                    <button class="water-range-btn pill-button px-3 py-1 rounded-full text-sm" data-range="daily">Daily</button>
+                    <button class="water-range-btn pill-button px-3 py-1 rounded-full text-sm" data-range="weekly">Weekly</button>
+                    <button class="water-range-btn pill-button px-3 py-1 rounded-full text-sm" data-range="monthly">Monthly</button>
+                </div>
+            </div>
+            <div class="h-80">
+                <canvas id="waterChart" width="560" height="320" style="display: block; box-sizing: border-box; height: 320px; width: 560px;"></canvas>
+            </div>
+        </div>
+
+        <!-- Ultrasonic Sensor Graph -->
+        <div class="card rounded-xl p-6 mb-8">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
+                <h2 class="text-2xl font-bold mb-4 md:mb-0">Ultrasonic Distance</h2>
+                <div class="flex flex-wrap gap-2 bg-gray-100 dark:bg-gray-700 rounded-full p-1">
+                    <button class="ultrasonic-range-btn pill-button px-3 py-1 rounded-full text-sm active" data-range="minutely">Minutely</button>
+                    <button class="ultrasonic-range-btn pill-button px-3 py-1 rounded-full text-sm" data-range="hourly">Hourly</button>
+                    <button class="water-range-btn pill-button px-3 py-1 rounded-full text-sm" data-range="daily">Daily</button>
+                    <button class="ultrasonic-range-btn pill-button px-3 py-1 rounded-full text-sm" data-range="weekly">Weekly</button>
+                    <button class="ultrasonic-range-btn pill-button px-3 py-1 rounded-full text-sm" data-range="monthly">Monthly</button>
+                </div>
+            </div>
+            <div class="h-80">
+                <canvas id="ultrasonicChart" width="560" height="320" style="display: block; box-sizing: border-box; height: 320px; width: 560px;"></canvas>
+            </div>
+        </div>
+
+        <!-- Temperature & Humidity Graph -->
+        <div class="card rounded-xl p-6 mb-8">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
+                <h2 class="text-2xl font-bold mb-4 md:mb-0">Temperature &amp; Humidity</h2>
+                <div class="flex flex-wrap gap-2 bg-gray-100 dark:bg-gray-700 rounded-full p-1">
+                    <button class="temp-range-btn pill-button px-3 py-1 rounded-full text-sm active" data-range="minutely">Minutely</button>
+                    <button class="temp-range-btn pill-button px-3 py-1 rounded-full text-sm" data-range="hourly">Hourly</button>
+                    <button class="water-range-btn pill-button px-3 py-1 rounded-full text-sm" data-range="daily">Daily</button>
+                    <button class="temp-range-btn pill-button px-3 py-1 rounded-full text-sm" data-range="weekly">Weekly</button>
+                    <button class="temp-range-btn pill-button px-3 py-1 rounded-full text-sm" data-range="monthly">Monthly</button>
+                </div>
+            </div>
+            <div class="h-80">
+                <canvas id="tempHumidityChart" width="560" height="320" style="display: block; box-sizing: border-box; height: 320px; width: 560px;"></canvas>
+            </div>
+        </div>
+
+        <!-- Logs Section -->
+        <div class="card rounded-xl p-6">
+            <h2 class="text-2xl font-bold mb-6">Event Logs</h2>
+            
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 space-y-4 md:space-y-0">
+                <!-- Filter Toggles -->
+                <div class="flex flex-wrap gap-2">
+                    <button class="filter-toggle px-3 py-1 rounded-full text-sm active" data-filter="water">Water</button>
+                    <button class="filter-toggle px-3 py-1 rounded-full text-sm active" data-filter="ultrasonic">Ultrasonic</button>
+                    <button class="filter-toggle px-3 py-1 rounded-full text-sm active" data-filter="temperature">Temperature</button>
+                    <button class="filter-toggle px-3 py-1 rounded-full text-sm active" data-filter="humidity">Humidity</button>
+                    <button class="filter-toggle px-3 py-1 rounded-full text-sm active" data-filter="relay">Relay</button>
+                </div>
+                
+                <!-- Rows Per Page -->
+                <div class="flex items-center">
+                    <label for="rows-per-page" class="mr-2 text-sm">Rows:</label>
+                    <select id="rows-per-page" class="bg-gray-100 dark:bg-gray-700 rounded px-2 py-1 text-sm">
+                        <option value="10">10</option>
+                        <option value="25">25</option>
+                        <option value="50">50</option>
+                    </select>
+                </div>
+            </div>
+            
+            <!-- Pagination (Top) -->
+            <div class="flex justify-between items-center mb-4">
+                <div class="text-sm" id="showing-results"></div>
+                <div class="flex space-x-2">
+                    <button id="first-page-top" class="pagination-button px-2 py-1 rounded bg-gray-100 dark:bg-gray-700 disabled:opacity-50" disabled="">&lt;&lt;</button>
+                    <button id="prev-page-top" class="pagination-button px-2 py-1 rounded bg-gray-100 dark:bg-gray-700 disabled:opacity-50" disabled="">&lt;</button>
+                    <span id="page-indicator-top" class="px-2 py-1"></span>
+                    <button id="next-page-top" class="pagination-button px-2 py-1 rounded bg-gray-100 dark:bg-gray-700 disabled:opacity-50" disabled="">&gt;</button>
+                    <button id="last-page-top" class="pagination-button px-2 py-1 rounded bg-gray-100 dark:bg-gray-700 disabled:opacity-50" disabled="">&gt;&gt;</button>
+                </div>
+            </div>
+            
+            <!-- Logs Table -->
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead>
+                        <tr class="border-b border-gray-200 dark:border-gray-700">
+                            <th class="py-3 px-4 text-left">Timestamp</th>
+                            <th class="py-3 px-4 text-left">Message</th>
+                            <th class="py-3 px-4 text-left">Sensor Type</th>
+                        </tr>
+                    </thead>
+                    <tbody id="logs-table-body">
+                        <tr>
+                            <td colspan="3" class="py-4 text-center text-gray-500">Loading…</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Pagination (Bottom) -->
+            <div class="flex justify-between items-center mt-4">
+                <div class="text-sm" id="showing-results-bottom"></div>
+                <div class="flex space-x-2">
+                    <button id="first-page-bottom" class="pagination-button px-2 py-1 rounded bg-gray-100 dark:bg-gray-700 disabled:opacity-50" disabled="">&lt;&lt;</button>
+                    <button id="prev-page-bottom" class="pagination-button px-2 py-1 rounded bg-gray-100 dark:bg-gray-700 disabled:opacity-50" disabled="">&lt;</button>
+                    <span id="page-indicator-bottom" class="px-2 py-1"></span>
+                    <button id="next-page-bottom" class="pagination-button px-2 py-1 rounded bg-gray-100 dark:bg-gray-700 disabled:opacity-50" disabled="">&gt;</button>
+                    <button id="last-page-bottom" class="pagination-button px-2 py-1 rounded bg-gray-100 dark:bg-gray-700 disabled:opacity-50" disabled="">&gt;&gt;</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Theme Toggle
+        const themeToggle = document.getElementById('theme-toggle');
+        const themeIcon = document.getElementById('theme-icon');
+        
+        themeToggle.addEventListener('click', () => {
+            if (document.body.classList.contains('theme-light')) {
+                document.body.classList.remove('theme-light');
+                document.body.classList.add('theme-dark');
+                themeIcon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />';
+            } else {
+                document.body.classList.remove('theme-dark');
+                document.body.classList.add('theme-light');
+                themeIcon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />';
+            }
+        });
+
+        // Current Time Display
+        function updateCurrentTime() {
+            const now = new Date();
+            const options = { 
+                timeZone: 'Asia/Kuala_Lumpur',
+                year: 'numeric', 
+                month: 'short', 
+                day: 'numeric', 
+                hour: '2-digit', 
+                minute: '2-digit', 
+                second: '2-digit',
+                hour12: true
+            };
+            document.getElementById('current-time').textContent = now.toLocaleString('en-MY', options) + ' (MYT)';
+        }
+        
+        setInterval(updateCurrentTime, 1000);
+        updateCurrentTime();
+
+        async function fetchRelayState() {
+            const res = await fetch('/aqua-sentry/api/get_relay_state.php');
+            const data = await res.json();
+            return data.state;  // assuming PHP returns: { "state": "ON" }
+        }
+
+        async function fetchReadingsCount(type) {
+            let url = type === 'water'
+                ? '/aqua-sentry/api/get_water_count.php'
+                : '/aqua-sentry/api/get_temp_count.php';
+            const res  = await fetch(url);
+            const obj  = await res.json();
+            return obj.count;
+        }
+        
+        function parseMySQLDateTime(str) {
+            return luxon.DateTime
+                .fromSQL(str, { zone: 'Asia/Kuala_Lumpur' })
+                .isValid
+                    ? luxon.DateTime.fromSQL(str, { zone: 'Asia/Kuala_Lumpur' })
+                    : null;
+        }
+        
+        async function fetchChartData(type, range) {
+            let url;
+            if (type === 'water' || type === 'ultrasonic') {
+                url = `/aqua-sentry/api/get_ultrasonic-and-water_readings.php?type=${type}&range=${range}`;
+            } else {
+                url = `/aqua-sentry/api/get_dht11_readings.php?range=${range}`;
+            }
+            
+            try {
+                const response = await fetch(url);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const json = await response.json();
+                
+                // Add debugging
+                console.log(`Fetched ${type} data:`, json);
+                
+                if (type === 'water') {
+                    return json.map(p => ({
+                        timestamp: p.timestamp,
+                        value: parseInt(p.value || 0) // Ensure it's a number
+                    }));
+                }
+                
+                if (type === 'ultrasonic') {
+                    return json.map(p => ({
+                        timestamp: p.timestamp,
+                        value: parseFloat(p.value || 0) // Ensure it's a number
+                    }));
+                }
+                
+                // DHT11 (temperature+humidity) - this might use different table
+                return json.map(p => ({
+                    timestamp: p.event_time || p.timestamp, // Handle both cases
+                    temperature: parseFloat(p.temperature || 0), // Ensure it's a number
+                    humidity: parseFloat(p.humidity || 0) // Ensure it's a number
+                }));
+            } catch (error) {
+                console.error(`Error fetching ${type} data:`, error);
+                return []; // Return empty array on error
+            }
+        }
+
+        async function fetchLogs(filters = ['water','ultrasonic','temperature','humidity','relay'], page = 1, perPage = 10) {
+            const filterQuery = filters.join(',');
+            const response = await fetch(`/aqua-sentry/api/get_logs.php?filters=${filterQuery}&page=${page}&per_page=${perPage}`);
+            const data = await response.json();
+            return data;
+        }
+
+        // Update Relay State
+        async function updateRelayState() {
+            const state = await fetchRelayState();
+            const relayButton = document.getElementById('relay-button');
+            const relayState = document.getElementById('relay-state');
+            
+            relayState.textContent = state;
+            
+            if (state === 'ON') {
+                relayButton.style.borderColor = 'var(--danger)';
+            } else {
+                relayButton.style.borderColor = 'var(--success)';
+            }
+            
+            relayButton.classList.add('pulse-animation');
+            setTimeout(() => {
+                relayButton.classList.remove('pulse-animation');
+            }, 500);
+        }
+
+        // Update Readings Counts
+        async function updateReadingsCounts() {
+            const waterCount = await fetchReadingsCount('water');
+            const tempCount = await fetchReadingsCount('temp');
+            
+            const waterCountElement = document.getElementById('water-readings-count');
+            const tempCountElement = document.getElementById('temp-readings-count');
+            
+            if (waterCountElement.textContent !== waterCount.toString()) {
+                waterCountElement.classList.add('pulse-animation');
+                setTimeout(() => {
+                    waterCountElement.classList.remove('pulse-animation');
+                }, 500);
+            }
+            
+            if (tempCountElement.textContent !== tempCount.toString()) {
+                tempCountElement.classList.add('pulse-animation');
+                setTimeout(() => {
+                    tempCountElement.classList.remove('pulse-animation');
+                }, 500);
+            }
+            
+            waterCountElement.textContent = waterCount.toString();
+            tempCountElement.textContent = tempCount.toString();
+        }
+
+        // Chart Initialization
+        let waterChart, ultrasonicChart, tempHumidityChart;
+        let waterRange = 'minutely', ultrasonicRange = 'minutely', tempRange = 'minutely';
+
+        function initCharts() {
+            // Water Chart
+            const waterCtx = document.getElementById('waterChart').getContext('2d');
+            waterChart = new Chart(waterCtx, {
+                type: 'line',
+                data: {
+                    datasets: [{
+                        label: 'Water Level',
+                        borderColor: '#006d77',
+                        backgroundColor: createGradient(waterCtx, '#006d77'),
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.4,
+                        data: []
+                    }]
+                },
+                options: createChartOptions('Water Level (%)')
+            });
+            
+            // Ultrasonic Chart
+            const ultrasonicCtx = document.getElementById('ultrasonicChart').getContext('2d');
+            ultrasonicChart = new Chart(ultrasonicCtx, {
+                type: 'line',
+                data: {
+                    datasets: [{
+                        label: 'Distance',
+                        borderColor: '#6a4c93',
+                        backgroundColor: createGradient(ultrasonicCtx, '#6a4c93'),
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.4,
+                        data: []
+                    }]
+                },
+                options: createChartOptions('Distance (cm)')
+            });
+            
+            // Temperature & Humidity Chart
+            const tempCtx = document.getElementById('tempHumidityChart').getContext('2d');
+            tempHumidityChart = new Chart(tempCtx, {
+                type: 'line',
+                data: {
+                    datasets: [
+                        {
+                            label: 'Temperature',
+                            borderColor: '#f4a261',
+                            backgroundColor: createGradient(tempCtx, '#f4a261'),
+                            borderWidth: 2,
+                            fill: true,
+                            tension: 0.4,
+                            yAxisID: 'y',
+                            data: []
+                        },
+                        {
+                            label: 'Humidity',
+                            borderColor: '#2a9d8f',
+                            backgroundColor: createGradient(tempCtx, '#2a9d8f'),
+                            borderWidth: 2,
+                            fill: true,
+                            tension: 0.4,
+                            yAxisID: 'y1',
+                            data: []
+                        }
+                    ]
+                },
+                options: createTempHumidityChartOptions()
+            });
+        }
+
+        function createGradient(ctx, color) {
+            const gradient = ctx.createLinearGradient(0, 0, 0, 300);
+            gradient.addColorStop(0, color + '99'); // 60% opacity
+            gradient.addColorStop(1, color + '1A'); // 10% opacity
+            return gradient;
+        }
+
+        function createChartOptions(yAxisLabel) {
+            return {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: {
+                    mode: 'index',
+                    intersect: false,
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(0, 0, 0, 0.7)',
+                        padding: 10,
+                        cornerRadius: 6,
+                        usePointStyle: true
+                    }
+                },
+                scales: {
+                    x: {
+                        type: 'time',
+                        // 1️⃣ Respect the exact first/last data points
+                        bounds: 'data',      
+                
+                        // 2️⃣ Tell ticks to be generated from your data timestamps
+                        ticks: {
+                          source: 'data'
+                        },
+                        
+                        time: {
+                            unit: 'hour',
+                            displayFormats: {
+                                minute: 'HH:mm',
+                                hour: 'HH:mm',
+                                day: 'MMM d',
+                                month: 'MMM yyyy'
+                            }
+                        },
+                        grid: {
+                            display: false
+                        }
+                    },
+                    y: {
+                        title: {
+                            display: true,
+                            text: yAxisLabel
+                        },
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.05)'
+                        }
+                    }
+                }
+            };
+        }
+
+        function createTempHumidityChartOptions() {
+            return {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: {
+                    mode: 'index',
+                    intersect: false,
+                },
+                plugins: {
+                    tooltip: {
+                        backgroundColor: 'rgba(0, 0, 0, 0.7)',
+                        padding: 10,
+                        cornerRadius: 6,
+                        usePointStyle: true
+                    }
+                },
+                scales: {
+                    x: {
+                        type: 'time',
+                        // 1️⃣ Respect the exact first/last data points
+                        bounds: 'data',
+                
+                        // 2️⃣ Tell ticks to be generated from your data timestamps
+                        ticks: {
+                          source: 'data'
+                        },
+
+                        time: {
+                            unit: 'hour',
+                            displayFormats: {
+                                minute: 'HH:mm',
+                                hour: 'HH:mm',
+                                day: 'MMM d',
+                                month: 'MMM yyyy'
+                            }
+                        },
+                        grid: {
+                            display: false
+                        }
+                    },
+                    y: {
+                        type: 'linear',
+                        display: true,
+                        position: 'left',
+                        title: {
+                            display: true,
+                            text: 'Temperature (°C)'
+                        },
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.05)'
+                        }
+                    },
+                    y1: {
+                        type: 'linear',
+                        display: true,
+                        position: 'right',
+                        title: {
+                            display: true,
+                            text: 'Humidity (%)'
+                        },
+                        grid: {
+                            drawOnChartArea: false
+                        }
+                    }
+                }
+            };
+        }
+
+        function normalizeTimeSeries(rawPoints, range, type = 'single') {
+            const now = luxon.DateTime.now().setZone('Asia/Kuala_Lumpur');
+            let start, stepMillis;
+        
+            switch (range) {
+                case 'minutely':
+                    // Snap to the start of this minute
+                    start       = now.minus({ minutes: 1 }).startOf('minute');
+                    stepMillis  = 1000;      // 60 seconds
+                    break;
+                case 'hourly':
+                    start       = now.minus({ hours: 1 }).startOf('hour');
+                    stepMillis  = 60 * 1000;      // 1 minute
+                    break;
+                case 'daily':
+                    start       = now.minus({ days: 1 }).startOf('day');
+                    stepMillis  = 60 * 60 * 1000; // 1 hour
+                    break;
+                case 'weekly':
+                    start       = now.minus({ weeks: 1}).startOf('week');
+                    stepMillis = 24 * 60 * 60 * 1000; 
+                    break;
+                case 'monthly':
+                    start       = now.minus({ months:1}).startOf('month');
+                    stepMillis = 24 * 60 * 60 * 1000; 
+                    break;
+                default:
+                    start = now.minus({ minutes: 1 });
+                    stepMillis = 1000;
+            }
+        
+            // Create a map of timestamps to data points
+            const map = {};
+            rawPoints.forEach((p, index) => {
+                // Debug: log the first few objects to see structure
+                if (index < 2) {
+                    console.log(`Sample data point ${index}:`, p);
+                }
+                
+                // Get timestamp value
+                let timestampValue = p.timestamp;
+                
+                if (!timestampValue) {
+                    console.warn('No timestamp found in data point:', p);
+                    return;
+                }
+                
+                const timestamp = parseMySQLDateTime(timestampValue);
+                if (timestamp && timestamp.isValid) {
+                    const key = Math.floor(timestamp.toMillis() / stepMillis) * stepMillis;
+                    map[key] = p;
+                } else {
+                    console.warn('Could not parse timestamp:', timestampValue, 'from object:', p);
+                }
+            });
+        
+            // Generate the time series
+            const series = [];
+            let lastValue = null; // Keep track of last known value
+            let lastTemperature = null;
+            let lastHumidity = null;
+            
+            for (let t = start.toMillis(); t <= now.toMillis(); t += stepMillis) {
+                const time = new Date(t);
+                const existing = map[t];
+                
+                if (type === 'single') {
+                    let currentValue;
+                    if (existing && existing.value !== undefined && existing.value !== null) {
+                        currentValue = existing.value;
+                        lastValue = currentValue; // Update last known value
+                    } else {
+                        // Use last known value or 0 if no previous value
+                        currentValue = lastValue !== null ? lastValue : 0;
+                    }
+                    
+                    series.push({ 
+                        x: time, 
+                        y: currentValue
+                    });
+                } else if (type === 'multi') {
+                    let currentTemp, currentHumidity;
+                    
+                    if (existing) {
+                        if (existing.temperature !== undefined && existing.temperature !== null) {
+                            currentTemp = existing.temperature;
+                            lastTemperature = currentTemp;
+                        } else {
+                            currentTemp = lastTemperature !== null ? lastTemperature : 0;
+                        }
+                        
+                        if (existing.humidity !== undefined && existing.humidity !== null) {
+                            currentHumidity = existing.humidity;
+                            lastHumidity = currentHumidity;
+                        } else {
+                            currentHumidity = lastHumidity !== null ? lastHumidity : 0;
+                        }
+                    } else {
+                        currentTemp = lastTemperature !== null ? lastTemperature : 0;
+                        currentHumidity = lastHumidity !== null ? lastHumidity : 0;
+                    }
+                    
+                    series.push({
+                        time: time,
+                        temperature: currentTemp,
+                        humidity: currentHumidity
+                    });
+                }
+            }
+            
+            console.log(`Normalized ${type} series (${range}):`, series.slice(0, 5)); // Log first 5 points
+            return series;
+        }
+        
+        // Update Charts with better error handling
+        async function updateWaterChart() {
+            try {
+                console.log('Updating water chart with range:', waterRange);
+                const raw = await fetchChartData('water', waterRange);
+                
+                if (!raw || raw.length === 0) {
+                    console.warn('No water data received');
+                    return;
+                }
+                
+                const data = normalizeTimeSeries(raw, waterRange, 'single');
+                
+                if (!waterChart || !waterChart.data || !waterChart.data.datasets[0]) {
+                    console.error('Water chart not properly initialized');
+                    return;
+                }
+                
+                waterChart.data.datasets[0].data = data;
+        
+                // Update axis units
+                const timeUnit = 
+                    waterRange === 'minutely' ? 'second' :
+                    waterRange === 'hourly' ? 'minute' :
+                    waterRange === 'daily' ? 'hour' :
+                    waterRange === 'weekly' ? 'day' :
+                    waterRange === 'monthly' ? 'day' : 'month';
+                    
+                if (waterChart.options.scales.x.time) {
+                    waterChart.options.scales.x.time.unit = timeUnit;
+                }
+        
+                waterChart.update('none'); // Use 'none' for better performance
+                console.log('Water chart updated successfully');
+            } catch (error) {
+                console.error('Error updating water chart:', error);
+            }
+        }
+        
+        async function updateUltrasonicChart() {
+            try {
+                console.log('Updating ultrasonic chart with range:', ultrasonicRange);
+                const raw = await fetchChartData('ultrasonic', ultrasonicRange);
+                
+                if (!raw || raw.length === 0) {
+                    console.warn('No ultrasonic data received');
+                    return;
+                }
+                
+                const data = normalizeTimeSeries(raw, ultrasonicRange, 'single');
+                
+                if (!ultrasonicChart || !ultrasonicChart.data || !ultrasonicChart.data.datasets[0]) {
+                    console.error('Ultrasonic chart not properly initialized');
+                    return;
+                }
+                
+                ultrasonicChart.data.datasets[0].data = data;
+        
+                const timeUnit = 
+                    ultrasonicRange === 'minutely' ? 'second' :
+                    ultrasonicRange === 'hourly' ? 'minute' :
+                    ultrasonicRange === 'daily' ? 'hour' :
+                    ultrasonicRange === 'weekly' ? 'day' :
+                    ultrasonicRange === 'monthly' ? 'day' : 'month';
+                    
+                if (ultrasonicChart.options.scales.x.time) {
+                    ultrasonicChart.options.scales.x.time.unit = timeUnit;
+                }
+        
+                ultrasonicChart.update('none');
+                console.log('Ultrasonic chart updated successfully');
+            } catch (error) {
+                console.error('Error updating ultrasonic chart:', error);
+            }
+        }
+        
+        async function updateTempHumidityChart() {
+            try {
+                console.log('Updating temp/humidity chart with range:', tempRange);
+                const raw = await fetchChartData('temp-humidity', tempRange);
+                
+                if (!raw || raw.length === 0) {
+                    console.warn('No temperature/humidity data received');
+                    return;
+                }
+                
+                const normalized = normalizeTimeSeries(raw, tempRange, 'multi');
+                
+                if (!tempHumidityChart || !tempHumidityChart.data || 
+                    !tempHumidityChart.data.datasets[0] || !tempHumidityChart.data.datasets[1]) {
+                    console.error('Temperature/Humidity chart not properly initialized');
+                    return;
+                }
+        
+                tempHumidityChart.data.datasets[0].data = normalized.map(p => ({
+                    x: p.time, 
+                    y: p.temperature
+                }));
+        
+                tempHumidityChart.data.datasets[1].data = normalized.map(p => ({
+                    x: p.time, 
+                    y: p.humidity
+                }));
+        
+                const timeUnit = 
+                    tempRange === 'minutely' ? 'second' :
+                    tempRange === 'hourly' ? 'minute' :
+                    tempRange === 'daily' ? 'hour' :
+                    tempRange === 'weekly' ? 'day' :
+                    tempRange === 'monthly' ? 'day' : 'month';
+                    
+                if (tempHumidityChart.options.scales.x.time) {
+                    tempHumidityChart.options.scales.x.time.unit = timeUnit;
+                }
+        
+                tempHumidityChart.update('none');
+                console.log('Temperature/Humidity chart updated successfully');
+            } catch (error) {
+                console.error('Error updating temperature/humidity chart:', error);
+            }
+        }
+        
+        // Helper function to debug chart data
+        function debugChartData() {
+            console.log('=== Chart Debug Info ===');
+            
+            if (typeof waterChart !== 'undefined' && waterChart.data) {
+                console.log('Water chart data points:', waterChart.data.datasets[0].data.length);
+                console.log('Water chart sample data:', waterChart.data.datasets[0].data.slice(0, 3));
+            }
+            
+            if (typeof ultrasonicChart !== 'undefined' && ultrasonicChart.data) {
+                console.log('Ultrasonic chart data points:', ultrasonicChart.data.datasets[0].data.length);
+                console.log('Ultrasonic chart sample data:', ultrasonicChart.data.datasets[0].data.slice(0, 3));
+            }
+            
+            if (typeof tempHumidityChart !== 'undefined' && tempHumidityChart.data) {
+                console.log('Temp chart data points:', tempHumidityChart.data.datasets[0].data.length);
+                console.log('Humidity chart data points:', tempHumidityChart.data.datasets[1].data.length);
+                console.log('Temp chart sample data:', tempHumidityChart.data.datasets[0].data.slice(0, 3));
+            }
+        }
+
+        // Logs Management
+        let currentPage = 1;
+        let rowsPerPage = 10;
+        let activeFilters = ['water', 'ultrasonic', 'temperature', 'humidity', 'relay'];
+
+        function updatePaginationControls() {
+            document.getElementById('page-indicator-top').textContent = `Page ${currentPage}/${totalPages}`;
+            document.getElementById('page-indicator-bottom').textContent = `Page ${currentPage}/${totalPages}`;
+            
+            const prevBtns = [document.getElementById('prev-page-top'), document.getElementById('prev-page-bottom')];
+            const nextBtns = [document.getElementById('next-page-top'), document.getElementById('next-page-bottom')];
+            const firstBtns = [document.getElementById('first-page-top'), document.getElementById('first-page-bottom')];
+            const lastBtns = [document.getElementById('last-page-top'), document.getElementById('last-page-bottom')];
+            
+            prevBtns.forEach(btn => btn.disabled = currentPage === 1);
+            nextBtns.forEach(btn => btn.disabled = currentPage === totalPages);
+            firstBtns.forEach(btn => btn.disabled = currentPage === 1);
+            lastBtns.forEach(btn => btn.disabled = currentPage === totalPages);
+        }
+
+        async function updateLogs() {
+            const { logs, total, total_pages } = await fetchLogs(activeFilters, currentPage, rowsPerPage);
+            totalPages = total_pages; // Just assign the value, don't redeclare
+            
+            const tableBody = document.getElementById('logs-table-body');
+            tableBody.innerHTML = '';
+            
+            if (logs.length === 0) {
+                const row = document.createElement('tr');
+                row.innerHTML = `<td colspan="3" class="py-4 text-center text-gray-500">No logs found</td>`;
+                tableBody.appendChild(row);
+            } else {
+                logs.forEach(log => {
+                    const row = document.createElement('tr');
+                    row.className = 'border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800';
+                    
+                    const options = { 
+                        timeZone: 'Asia/Kuala_Lumpur',
+                        year: 'numeric', 
+                        month: 'short', 
+                        day: 'numeric', 
+                        hour: '2-digit', 
+                        minute: '2-digit', 
+                        second: '2-digit',
+                        hour12: true
+                    };
+                    
+                    const timestamp = log.timestamp.toLocaleString('en-MY', options);
+                    
+                    // Truncate message if too long
+                    let displayMessage = log.message;
+                    let tooltipHtml = '';
+                    
+                    if (log.message.length > 50) {
+                        displayMessage = log.message.substring(0, 47) + '...';
+                        tooltipHtml = `<div class="tooltip-text">${log.message}</div>`;
+                    }
+                    
+                    row.innerHTML = `
+                        <td class="py-3 px-4">${timestamp}</td>
+                        <td class="py-3 px-4 max-w-md">
+                            <div class="tooltip">
+                                ${displayMessage}
+                                ${tooltipHtml}
+                            </div>
+                        </td>
+                        <td class="py-3 px-4">
+                            <span class="px-2 py-1 rounded-full text-xs ${getSensorTypeClass(log.sensor_type)}">
+                                ${capitalizeFirstLetter(log.sensor_type)}
+                            </span>
+                        </td>
+                    `;
+                    
+                    tableBody.appendChild(row);
+                });
+            }
+            
+            document.getElementById('showing-results').textContent = `Showing ${logs.length} results of ${total} total`;
+            document.getElementById('showing-results-bottom').textContent = `Showing ${logs.length} results of ${total} total`;
+            
+            updatePaginationControls();
+        }
+        
+        function renderLogs(logs) {
+            const tbody = document.getElementById('logs-table-body');
+            tbody.innerHTML = '';
+        
+            if (!logs || logs.length === 0) {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td colspan="3" class="py-4 px-4 text-center text-sm text-gray-500 dark:text-gray-400">
+                        No record
+                    </td>
+            `   ;
+                tbody.appendChild(row);
+                return;
+            }
+        
+            logs.forEach(log => {
+                const row = document.createElement('tr');
+                row.className = "border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800";
+                row.innerHTML = `
+                <td class="py-3 px-4">${log.timestamp}</td>
+                    <td class="py-3 px-4 max-w-md">
+                        <div class="tooltip">${log.message}</div>
+                    </td>
+                    <td class="py-3 px-4">
+                    <span class="px-2 py-1 rounded-full text-xs ${getSensorBadgeClass(log.sensor_type)}">
+                        ${capitalizeFirstLetter(log.sensor_type)}
+                    </span>
+                </td>
+            `   ;
+            tbody.appendChild(row);
+            });
+        }
+
+        function getSensorTypeClass(type) {
+            switch (type) {
+                case 'water': return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200';
+                case 'ultrasonic': return 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200';
+                case 'temperature': return 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200';
+                case 'humidity': return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
+                case 'relay': return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200';
+                default: return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200';
+            }
+        }
+
+        function capitalizeFirstLetter(string) {
+            return string.charAt(0).toUpperCase() + string.slice(1);
+        }
+
+        // Event Listeners
+        document.querySelectorAll('.water-range-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.water-range-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                waterRange = btn.dataset.range;
+                updateWaterChart();
+            });
+        });
+
+        document.querySelectorAll('.ultrasonic-range-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.ultrasonic-range-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                ultrasonicRange = btn.dataset.range;
+                updateUltrasonicChart();
+            });
+        });
+
+        document.querySelectorAll('.temp-range-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.temp-range-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                tempRange = btn.dataset.range;
+                updateTempHumidityChart();
+            });
+        });
+
+        document.querySelectorAll('.filter-toggle').forEach(btn => {
+            btn.addEventListener('click', () => {
+                btn.classList.toggle('active');
+                
+                const filter = btn.dataset.filter;
+                if (btn.classList.contains('active')) {
+                    if (!activeFilters.includes(filter)) {
+                        activeFilters.push(filter);
+                    }
+                } else {
+                    activeFilters = activeFilters.filter(f => f !== filter);
+                }
+                
+                currentPage = 1;
+                updateLogs();
+            });
+        });
+
+        document.getElementById('rows-per-page').addEventListener('change', (e) => {
+            rowsPerPage = parseInt(e.target.value);
+            currentPage = 1;
+            updateLogs();
+        });
+
+        document.getElementById('prev-page-top').addEventListener('click', () => {
+            if (currentPage > 1) {
+                currentPage--;
+                updateLogs();
+            }
+        });
+
+        document.getElementById('next-page-top').addEventListener('click', () => {
+            if (currentPage < totalPages) {
+                currentPage++;
+                updateLogs();
+            }
+        });
+
+        document.getElementById('first-page-top').addEventListener('click', () => {
+            if (currentPage !== 1) {
+                currentPage = 1;
+                updateLogs();
+            }
+        });
+
+        document.getElementById('last-page-top').addEventListener('click', () => {
+            if (currentPage !== totalPages) {
+                currentPage = totalPages;
+                updateLogs();
+            }
+        });
+
+        document.getElementById('prev-page-bottom').addEventListener('click', () => {
+            if (currentPage > 1) {
+                currentPage--;
+                updateLogs();
+            }
+        });
+
+        document.getElementById('next-page-bottom').addEventListener('click', () => {
+            if (currentPage < totalPages) {
+                currentPage++;
+                updateLogs();
+            }
+        });
+
+        document.getElementById('first-page-bottom').addEventListener('click', () => {
+            if (currentPage !== 1) {
+                currentPage = 1;
+                updateLogs();
+            }
+        });
+
+        document.getElementById('last-page-bottom').addEventListener('click', () => {
+            if (currentPage !== totalPages) {
+                currentPage = totalPages;
+                updateLogs();
+            }
+        });
+
+        // Initialize and Start Polling
+        function initializeApp() {
+            initCharts();
+            
+            // Initial data load
+            updateRelayState();
+            updateReadingsCounts();
+            updateWaterChart();
+            updateUltrasonicChart();
+            updateTempHumidityChart();
+            updateLogs();
+            
+            // Set up polling intervals
+            setInterval(updateRelayState, 1000);        // 1 second
+            setInterval(updateReadingsCounts, 1000);    // 1 second
+            setInterval(updateWaterChart, 1000);        // 1 second
+            setInterval(updateUltrasonicChart, 1000);   // 1 second
+            setInterval(updateTempHumidityChart, 1000); // 1 second
+            setInterval(updateLogs, 2000);              // 2 seconds
+        }
+        
+        // Start the app
+        document.addEventListener('DOMContentLoaded', initializeApp);
+        
+        // Global error handling
+        window.onerror = function(message, source, lineno, colno, error) {
+            console.error('Global error:', error);
+            fetch('/aqua-sentry/api/log_error.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    message: message,
+                    url: source,
+                    line: `${lineno}:${colno}`,
+                })
+            }).catch(e => console.error('Error logging failed:', e));
+        };
+    </script>
+
+</body></html>
