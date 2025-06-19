@@ -1,4 +1,4 @@
-#include <Wire.h>                      // ← Add this
+#include <Wire.h>
 #include <WiFi.h>
 #include <Preferences.h>
 #include <HTTPClient.h>
